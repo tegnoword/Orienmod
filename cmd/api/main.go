@@ -1,3 +1,4 @@
+// cmd/api/main.go
 package main
 
 import (
@@ -5,64 +6,147 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/tegnoword/orienmod/configs"
 	"github.com/tegnoword/orienmod/internal/adapters/input/http/router"
-	"google.golang.org/api/option"
-	"google.golang.org/api/sheets/v4"
+	"github.com/tegnoword/orienmod/internal/adapters/output/google"
+	"github.com/tegnoword/orienmod/internal/adapters/output/storage"
+	"golang.org/x/oauth2"
 )
 
 func main() {
-	// 1. Cargar Variables de Entorno
-	err := godotenv.Load()
+	log.Println("🚀 Iniciando Orienmod...")
+	log.Println("📋 Cargando configuración OAuth2...")
+
+	var oauthConfig *oauth2.Config
+	var err error
+
+	// Intentar cargar desde credentials.json
+	oauthConfig, err = configs.NewOAuthConfigFromFile()
 	if err != nil {
-		log.Println("⚠️ No se pudo cargar el archivo .env, usando variables del sistema")
+		log.Printf("⚠️ Error al cargar credentials.json: %v", err)
+		log.Println("⚠️ Intentando con variables de entorno...")
+
+		// Fallback a variables de entorno
+		oauthConfig = configs.NewOAuthConfig()
 	}
 
-	// 2. Validar ruta de credenciales de Google
-	credPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	if credPath == "" {
-		log.Fatal("❌ Error: GOOGLE_APPLICATION_CREDENTIALS no definida en el entorno")
+	// ✅ VERIFICACIÓN CRÍTICA: asegurar que oauthConfig no sea nil
+	if oauthConfig == nil {
+		log.Fatal("❌ No se pudo cargar la configuración OAuth2. Revisa credentials.json o variables de entorno.")
 	}
 
-	// 3. Validar existencia física del JSON de credenciales
-	fileInfo, err := os.Stat(credPath)
-	if os.IsNotExist(err) {
-		log.Fatalf("❌ Error: El archivo de credenciales no existe en: %s", credPath)
-	} else if err != nil {
-		log.Fatalf("❌ Error al verificar credenciales: %v", err)
-	}
-	if fileInfo.Size() == 0 {
-		log.Fatalf("❌ Error: El archivo '%s' está vacío", credPath)
+	// ✅ VERIFICACIÓN CRÍTICA: asegurar que ClientID no esté vacío
+	if oauthConfig.ClientID == "" {
+		log.Fatal("❌ GOOGLE_CLIENT_ID no configurado. Revisa credentials.json o variables de entorno.")
 	}
 
-	log.Printf("✅ Archivo de credenciales detectado en: %s (%d bytes)", credPath, fileInfo.Size())
+	log.Printf("✅ OAuth2 configurado correctamente")
+	log.Printf("   Client ID: %s...", oauthConfig.ClientID[:15])
+	log.Printf("   Redirect URI: %s", oauthConfig.RedirectURL)
 
-	// 4. Inicializar adaptador de Google Sheets (Fase de Herramientas)
-	ctx := context.Background()
-	sheetsService, err := sheets.NewService(ctx, option.WithCredentialsFile(credPath))
-	if err != nil {
-		log.Fatalf("❌ Error crítico al inicializar Google Sheets: %v", err)
+	// ============================================
+	// 2. ALMACENAMIENTO DE TOKENS
+	// ============================================
+	log.Println("📋 Inicializando almacenamiento de tokens...")
+	tokenStore := storage.NewMemoryTokenStore()
+
+	// Verificar que tokenStore no sea nil
+	if tokenStore == nil {
+		log.Fatal("❌ Error al crear MemoryTokenStore")
+	}
+	log.Println("✅ Almacenamiento de tokens inicializado (en memoria)")
+
+	// ============================================
+	// 3. ADAPTADOR DE GOOGLE
+	// ============================================
+	log.Println("📋 Inicializando adaptador de Google...")
+
+	spreadsheetID := os.Getenv("GOOGLE_SPREADSHEET_ID")
+	if spreadsheetID == "" {
+		log.Println("⚠️ GOOGLE_SPREADSHEET_ID no configurada (opcional)")
+		spreadsheetID = "placeholder"
 	}
 
-	log.Println("🚀 ¡Servicio de Google Sheets inicializado con éxito!")
-	_ = sheetsService // Este 'sheetsService' lo inyectarás luego en tus adaptadores de salida (output)
+	googleAdapter := google.NewGoogleClientAdapter(oauthConfig, tokenStore, spreadsheetID)
 
-	// 5. Inicializar tu Router nativo
-	// Pasamos "nil" o un mock temporalmente como 'classroomAdapter' hasta que implementes el caso de uso/puerto correspondiente
-	appRouter := router.NewRouter(nil)
+	// ✅ VERIFICACIÓN: asegurar que googleAdapter no sea nil
+	if googleAdapter == nil {
+		log.Fatal("❌ Error al crear GoogleClientAdapter")
+	}
+	log.Println("✅ Adaptador de Google inicializado")
 
-	// 6. Configurar puerto y arrancar el Servidor con TU router
+	// ============================================
+	// 4. ROUTER
+	// ============================================
+	log.Println("📋 Configurando router...")
+
+	r := router.NewRouter(oauthConfig, tokenStore, googleAdapter)
+
+	// ✅ VERIFICACIÓN: asegurar que router no sea nil
+	if r == nil {
+		log.Fatal("❌ Error al crear Router")
+	}
+	log.Println("✅ Router configurado")
+
+	// ============================================
+	// 5. SERVIDOR HTTP
+	// ============================================
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("📡 Servidor levantado usando tu Router Hexagonal en http://localhost:%s", port)
-
-	// Levantamos el servidor HTTP pasándole tu estructura appRouter (que implementa ServeHTTP)
-	err = http.ListenAndServe(":"+port, appRouter)
-	if err != nil {
-		log.Fatalf("❌ Error crítico al iniciar el servidor: %v", err)
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	// ============================================
+	// 6. INICIAR SERVIDOR
+	// ============================================
+	log.Printf("🚀 Servidor corriendo en http://localhost:%s", port)
+	log.Println("📚 Endpoints disponibles:")
+	log.Println("  GET  /health")
+	log.Println("  GET  /api/v1/auth/google")
+	log.Println("  GET  /api/v1/auth/google/callback")
+	log.Println("  POST /api/v1/auth/logout")
+	log.Println("  GET  /api/v1/courses")
+	log.Println("  POST /api/v1/courses")
+	log.Println("  GET  /api/v1/courses/{id}/students")
+	log.Println("  POST /api/v1/courses/{id}/sync")
+	log.Println("  QUERY /api/v1/courses/search")
+	log.Println("  QUERY /api/v1/students/search")
+	log.Println("  POST /api/v1/classroom/webhook")
+
+	// Iniciar servidor en goroutine
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Error al iniciar servidor: %v", err)
+		}
+	}()
+
+	// ============================================
+	// 7. GRACEFUL SHUTDOWN
+	// ============================================
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("🛑 Apagando servidor...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("❌ Error al apagar servidor: %v", err)
+	}
+
+	log.Println("✅ Servidor apagado correctamente")
 }

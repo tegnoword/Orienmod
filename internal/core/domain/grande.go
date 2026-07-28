@@ -1,9 +1,8 @@
 package domain
 
-type Grande struct {
-	ID            int    `json:"id"`
-	IdStuden      int    `json:"id_studen"`
-	IdTask        int    `json:"id_task"`
-	GradeObtained int    `json:"grade_obtained"`
-	Status        string `json:"status"`
+type Grade struct {
+	StudentID string  `json:"student_id"`
+	TaskID    string  `json:"task_id"`
+	Score     float64 `json:"score"`
+	CourseID  string  `json:"course_id"`
 }

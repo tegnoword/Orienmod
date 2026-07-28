@@ -81,7 +81,7 @@ func (a *ClassroomAdapter) GetCourses(ctx context.Context) ([]domain.Course, err
 	return courses, nil
 }
 
-func (a *ClassroomAdapter) GetStudentsByCourse(ctx context.Context, courseID string) ([]domain.Studen, error) {
+func (a *ClassroomAdapter) GetStudentsByCourse(ctx context.Context, courseID string) ([]domain.Student, error) {
 	res, err := a.service.Courses.Students.List(courseID).
 		Context(ctx).
 		Do()
@@ -90,10 +90,10 @@ func (a *ClassroomAdapter) GetStudentsByCourse(ctx context.Context, courseID str
 		return nil, fmt.Errorf("error al listar estudiantes del curso %s: %w", err)
 	}
 
-	var students []domain.Studen
+	var students []domain.Student
 	for _, s := range res.Students {
 
-		students = append(students, domain.Studen{
+		students = append(students, domain.Student{
 			ID:    s.UserId,
 			Name:  s.Profile.Name.FullName,
 			Email: s.Profile.EmailAddress,

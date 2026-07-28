@@ -1,3 +1,4 @@
 go.mod
 .env
 configs/credentials.json
+configs/credentials_wed.json

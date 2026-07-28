@@ -13,11 +13,13 @@ type NotificationRepository interface {
 }
 
 type ClassroomRepository interface {
-	SaveEvent(ctx context.Context, event domain.ClassroomEvent) error
-	SaveCourse(ctx context.Context, course domain.Course) error
-	GetAllCourses(ctx context.Context) ([]domain.Course, error)
-	SaveStudent(ctx context.Context, student domain.Studen) error
-	GetStudentsByCourse(ctx context.Context, courseID string) ([]domain.Studen, error)
-	SaveTasks(ctx context.Context, studentID string, tasks []domain.Task) error
-	SaveGrade(ctx context.Context, grade domain.Grande) error
+	SaveEvent(ctx context.Context, clientEmail string, event domain.ClassroomEvent) error
+
+	SaveCourse(ctx context.Context, clientEmail string, course domain.Course) error
+	GetAllCourses(ctx context.Context, clientEmail string) ([]domain.Course, error)
+
+	SaveStudent(ctx context.Context, clientEmail string, student domain.Student) error
+	GetStudentsByCourse(ctx context.Context, clientEmail string, courseID string) ([]domain.Student, error)
+	SaveTasks(ctx context.Context, clientEmail string, studentID string, tasks []domain.Task) error
+	SaveGrade(ctx context.Context, clientEmail string, grade domain.Grade) error
 }

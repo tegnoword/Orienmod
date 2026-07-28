@@ -1,1 +1,66 @@
-GET http://localhost:8080/api/v1/classroom/webhook
+GET http://localhost:8080/api/v1/auth/google
+
+
+### Verificar autenticación
+GET http://localhost:8080/api/v1/auth/check
+X-User-Email: kelvinabache12@gmail.com
+
+### couses
+GET http://localhost:8080/api/v1/courses
+X-User-Email: kelvinabache12@gmail.com
+
+
+### Obtener tareas del curso
+GET http://localhost:8080/api/v1/tasks?course_id=869066213014
+X-User-Email: kelvinabache12@gmail.com
+
+###
+
+POST http://localhost:8080/api/v1/auth/logout
+Content-Type: application/json
+
+{
+    "email":"kelvinabache12@gmail.com"
+}
+
+###
+POST http://localhost:8080/api/v1/courses
+Content-Type: application/json
+X-User-Email: kelvinabache12@gmail.com
+
+{
+    "name": "Curso desde API",
+    "section": "Sección 1",
+    "description": "Curso creado con Orienmod"
+}
+
+### Crear una tarea
+POST http://localhost:8080/api/v1/tasks
+Content-Type: application/json
+X-User-Email: kelvinabache12@gmail.com
+
+{
+    "course_id": "869066213014",
+    "title": "Tarea de Prueba",
+    "description": "Descripción de la tarea",
+    "due_date": "2026-08-15T23:59:59Z",
+    "max_points": 100
+}
+
+### Crear tarea con WorkType específico
+POST http://localhost:8080/api/v1/tasks
+Content-Type: application/json
+X-User-Email: kelvinabache12@gmail.com
+
+{
+    "course_id": "869066213014",
+    "title": "Cuestionario de Opción Múltiple",
+    "description": "Responde las siguientes preguntas",
+    "due_date": "2026-08-15T23:59:59Z",
+    "max_points": 50,
+    "work_type": "MULTIPLE_CHOICE"
+}
+
+### Eliminar una tarea
+DELETE http://localhost:8080/api/v1/tasks/869066560614?course_id=869066213014
+X-User-Email: kelvinabache12@gmail.com

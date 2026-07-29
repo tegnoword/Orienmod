@@ -26,9 +26,10 @@ type TokenStore interface {
 }
 
 type Router struct {
-	oauthConfig   *oauth2.Config
-	tokenStore    TokenStore
-	googleAdapter *google.GoogleClientAdapter
+	oauthConfig    *oauth2.Config
+	tokenStore     TokenStore
+	googleAdapter  *google.GoogleClientAdapter
+	graphQLHandler http.Handler
 }
 
 func NewRouter(
@@ -41,6 +42,11 @@ func NewRouter(
 		tokenStore:    tokenStore,
 		googleAdapter: googleAdapter,
 	}
+}
+
+// AddGraphQLRoutes - Agrega el handler de GraphQL
+func (rt *Router) AddGraphQLRoutes(handler http.Handler) {
+	rt.graphQLHandler = handler
 }
 
 // ============================================
@@ -62,11 +68,49 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("📨 Petición: %s %s | Email: %s", r.Method, r.URL.Path, email)
 
 	switch {
+	// ============================================
+	// GRAPHQL
+	// ============================================
+	case r.URL.Path == "/graphql" && r.Method == http.MethodGet:
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+    <title>GraphiQL</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .graphiql-container { height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="graphiql">Cargando...</div>
+    <script src="https://unpkg.com/graphiql@3.0.0/graphiql.min.js"></script>
+    <script>
+        const fetcher = GraphiQL.createFetcher({ url: '/query' });
+        ReactDOM.render(
+            React.createElement(GraphiQL, { fetcher: fetcher }),
+            document.getElementById('graphiql')
+        );
+    </script>
+</body>
+</html>`))
+
+	case r.URL.Path == "/query" && (r.Method == http.MethodGet || r.Method == http.MethodPost):
+		if rt.graphQLHandler != nil {
+			rt.graphQLHandler.ServeHTTP(w, r)
+		} else {
+			http.Error(w, "GraphQL not initialized", http.StatusInternalServerError)
+		}
+
+	// ============================================
 	// HEALTH CHECK
+	// ============================================
 	case r.URL.Path == "/health" && r.Method == http.MethodGet:
 		rt.handleHealthCheck(w, r)
 
+	// ============================================
 	// AUTENTICACIÓN
+	// ============================================
 	case r.URL.Path == "/api/v1/auth/google" && r.Method == http.MethodGet:
 		rt.handleLogin(w, r)
 
@@ -85,7 +129,9 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.URL.Path == "/api/v1/auth/force" && r.Method == http.MethodGet:
 		rt.handleForceAuth(w, r)
 
+	// ============================================
 	// CLASSROOM - CURSOS
+	// ============================================
 	case r.URL.Path == "/api/v1/courses" && r.Method == http.MethodGet:
 		rt.requireAuth(w, r, email, rt.handleGetCourses)
 
@@ -108,14 +154,18 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			rt.requireAuth(w, r, email, rt.handleCourseRoutes)
 		}
 
+	// ============================================
 	// CLASSROOM - ESTUDIANTES
+	// ============================================
 	case r.URL.Path == "/api/v1/students/search" && r.Method == http.MethodGet:
 		rt.requireAuth(w, r, email, rt.handleSearchStudents)
 
 	case strings.HasPrefix(r.URL.Path, "/api/v1/courses/") && strings.Contains(r.URL.Path, "/students/") && r.Method == http.MethodDelete:
 		rt.requireAuth(w, r, email, rt.handleDeleteStudent)
 
+	// ============================================
 	// CLASSROOM - TAREAS
+	// ============================================
 	case r.URL.Path == "/api/v1/tasks" && r.Method == http.MethodPost:
 		rt.requireAuth(w, r, email, rt.handleCreateTask)
 
@@ -135,13 +185,18 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			rt.requireAuth(w, r, email, rt.handleTaskRoutes)
 		}
 
+	// ============================================
 	// WEBHOOK
+	// ============================================
 	case r.URL.Path == "/api/v1/classroom/webhook" && r.Method == http.MethodPost:
 		rt.handleWebhook(w, r)
 
 	case r.URL.Path == "/api/v1/classroom/webhook" && r.Method == http.MethodGet:
 		rt.handleWebhookVerification(w, r)
 
+	// ============================================
+	// 404
+	// ============================================
 	default:
 		log.Printf("❌ Ruta no encontrada: %s %s", r.Method, r.URL.Path)
 		http.NotFound(w, r)
@@ -149,10 +204,9 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================
-// FUNCIONES DE RESPUESTA CON ERRORES GLOBALES
+// FUNCIONES DE RESPUESTA
 // ============================================
 
-// respondJSON - Envía una respuesta JSON
 func (rt *Router) respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -161,14 +215,12 @@ func (rt *Router) respondJSON(w http.ResponseWriter, status int, data interface{
 	}
 }
 
-// respondError - Envía una respuesta de error usando AppError
 func (rt *Router) respondError(w http.ResponseWriter, err *apperrors.AppError) {
 	response := err.ToResponse()
 	log.Printf("❌ Error: %s (Code: %d)", err.Message, err.Code)
 	rt.respondJSON(w, err.Code, response)
 }
 
-// respondHTTPError - Envía un error HTTP simple (para casos sin AppError)
 func (rt *Router) respondHTTPError(w http.ResponseWriter, status int, message string) {
 	rt.respondJSON(w, status, map[string]string{"error": message})
 }
@@ -855,7 +907,7 @@ func (rt *Router) handleDeleteTask(w http.ResponseWriter, r *http.Request, email
 }
 
 // ============================================
-// HANDLERS DE CLASSROOM - RUTAS DINÁMICAS (cursos)
+// HANDLERS DE CLASSROOM - RUTAS DINÁMICAS
 // ============================================
 
 func (rt *Router) handleCourseRoutes(w http.ResponseWriter, r *http.Request, email string) {
@@ -869,7 +921,6 @@ func (rt *Router) handleCourseRoutes(w http.ResponseWriter, r *http.Request, ema
 
 	courseID := parts[0]
 
-	// GET /api/v1/courses/{id}/students
 	if len(parts) == 2 && parts[1] == "students" && r.Method == http.MethodGet {
 		log.Printf("📚 Obteniendo estudiantes | Email: %s | Course: %s", email, courseID)
 
@@ -889,7 +940,6 @@ func (rt *Router) handleCourseRoutes(w http.ResponseWriter, r *http.Request, ema
 		return
 	}
 
-	// POST /api/v1/courses/{id}/students
 	if len(parts) == 2 && parts[1] == "students" && r.Method == http.MethodPost {
 		var req struct {
 			StudentID string `json:"student_id"`
@@ -937,7 +987,6 @@ func (rt *Router) handleCourseRoutes(w http.ResponseWriter, r *http.Request, ema
 		return
 	}
 
-	// POST /api/v1/courses/{id}/sync
 	if len(parts) == 2 && parts[1] == "sync" && r.Method == http.MethodPost {
 		log.Printf("🔄 Sincronizando curso | Email: %s | Course: %s", email, courseID)
 
@@ -960,10 +1009,6 @@ func (rt *Router) handleCourseRoutes(w http.ResponseWriter, r *http.Request, ema
 	http.NotFound(w, r)
 }
 
-// ============================================
-// HANDLERS DE CLASSROOM - RUTAS DINÁMICAS (tareas)
-// ============================================
-
 func (rt *Router) handleTaskRoutes(w http.ResponseWriter, r *http.Request, email string) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/tasks/")
 	parts := strings.Split(path, "/")
@@ -975,7 +1020,6 @@ func (rt *Router) handleTaskRoutes(w http.ResponseWriter, r *http.Request, email
 
 	taskID := parts[0]
 
-	// GET /api/v1/tasks/{taskId}/submissions
 	if len(parts) == 2 && parts[1] == "submissions" && r.Method == http.MethodGet {
 		courseID := r.URL.Query().Get("course_id")
 		if courseID == "" {
@@ -1001,7 +1045,6 @@ func (rt *Router) handleTaskRoutes(w http.ResponseWriter, r *http.Request, email
 		return
 	}
 
-	// POST /api/v1/tasks/{taskId}/grade
 	if len(parts) == 2 && parts[1] == "grade" && r.Method == http.MethodPost {
 		var req struct {
 			CourseID     string  `json:"course_id"`

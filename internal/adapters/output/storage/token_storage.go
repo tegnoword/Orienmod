@@ -38,7 +38,6 @@ func (s *MemoryTokenStore) GetToken(ctx context.Context, email string) (*oauth2.
 	return token, nil
 }
 
-// ✅ AGREGADO
 func (s *MemoryTokenStore) DeleteToken(ctx context.Context, email string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

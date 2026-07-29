@@ -10,11 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/tegnoword/orienmod/configs"
 	"github.com/tegnoword/orienmod/internal/adapters/input/http/router"
 	"github.com/tegnoword/orienmod/internal/adapters/output/google"
 	"github.com/tegnoword/orienmod/internal/adapters/output/storage"
-	"golang.org/x/oauth2"
+	graphql "github.com/tegnoword/orienmod/internal/graph"
 )
 
 func main() {
@@ -29,17 +31,13 @@ func main() {
 	if err != nil {
 		log.Printf("⚠️ Error al cargar credentials.json: %v", err)
 		log.Println("⚠️ Intentando con variables de entorno...")
-
-		// Fallback a variables de entorno
 		oauthConfig = configs.NewOAuthConfig()
 	}
 
-	// ✅ VERIFICACIÓN CRÍTICA: asegurar que oauthConfig no sea nil
 	if oauthConfig == nil {
 		log.Fatal("❌ No se pudo cargar la configuración OAuth2. Revisa credentials.json o variables de entorno.")
 	}
 
-	// ✅ VERIFICACIÓN CRÍTICA: asegurar que ClientID no esté vacío
 	if oauthConfig.ClientID == "" {
 		log.Fatal("❌ GOOGLE_CLIENT_ID no configurado. Revisa credentials.json o variables de entorno.")
 	}
@@ -54,7 +52,6 @@ func main() {
 	log.Println("📋 Inicializando almacenamiento de tokens...")
 	tokenStore := storage.NewMemoryTokenStore()
 
-	// Verificar que tokenStore no sea nil
 	if tokenStore == nil {
 		log.Fatal("❌ Error al crear MemoryTokenStore")
 	}
@@ -73,27 +70,42 @@ func main() {
 
 	googleAdapter := google.NewGoogleClientAdapter(oauthConfig, tokenStore, spreadsheetID)
 
-	// ✅ VERIFICACIÓN: asegurar que googleAdapter no sea nil
 	if googleAdapter == nil {
 		log.Fatal("❌ Error al crear GoogleClientAdapter")
 	}
 	log.Println("✅ Adaptador de Google inicializado")
 
 	// ============================================
-	// 4. ROUTER
+	// 4. GRAPHQL HANDLER
+	// ============================================
+	log.Println("📋 Configurando GraphQL...")
+
+	// ✅ Crear handler de GraphQL con graphql-go
+	graphQLHandler := graphql.NewGraphQLHandler(googleAdapter, tokenStore, oauthConfig)
+
+	if graphQLHandler == nil {
+		log.Fatal("❌ Error al crear GraphQL Handler")
+	}
+	log.Println("✅ GraphQL configurado")
+
+	// ============================================
+	// 5. ROUTER
 	// ============================================
 	log.Println("📋 Configurando router...")
 
 	r := router.NewRouter(oauthConfig, tokenStore, googleAdapter)
 
-	// ✅ VERIFICACIÓN: asegurar que router no sea nil
 	if r == nil {
 		log.Fatal("❌ Error al crear Router")
 	}
+
+	// ✅ Agregar rutas de GraphQL al router
+	r.AddGraphQLRoutes(graphQLHandler)
+
 	log.Println("✅ Router configurado")
 
 	// ============================================
-	// 5. SERVIDOR HTTP
+	// 6. SERVIDOR HTTP
 	// ============================================
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -109,10 +121,12 @@ func main() {
 	}
 
 	// ============================================
-	// 6. INICIAR SERVIDOR
+	// 7. INICIAR SERVIDOR
 	// ============================================
 	log.Printf("🚀 Servidor corriendo en http://localhost:%s", port)
 	log.Println("📚 Endpoints disponibles:")
+	log.Println("")
+	log.Println("🔗 REST API:")
 	log.Println("  GET  /health")
 	log.Println("  GET  /api/v1/auth/google")
 	log.Println("  GET  /api/v1/auth/google/callback")
@@ -124,6 +138,11 @@ func main() {
 	log.Println("  QUERY /api/v1/courses/search")
 	log.Println("  QUERY /api/v1/students/search")
 	log.Println("  POST /api/v1/classroom/webhook")
+	log.Println("")
+	log.Println("🔗 GRAPHQL:")
+	log.Println("  GET  /graphql    - Playground de GraphQL")
+	log.Println("  POST /query      - Endpoint GraphQL")
+	log.Println("")
 
 	// Iniciar servidor en goroutine
 	go func() {
@@ -133,7 +152,7 @@ func main() {
 	}()
 
 	// ============================================
-	// 7. GRACEFUL SHUTDOWN
+	// 8. GRACEFUL SHUTDOWN
 	// ============================================
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

@@ -9,4 +9,5 @@ import (
 type TokenRepository interface {
 	SaveToken(ctx context.Context, email string, token *oauth2.Token) error
 	GetToken(ctx context.Context, email string) (*oauth2.Token, error)
+	DeleteToken(ctx context.Context, email string) error
 }

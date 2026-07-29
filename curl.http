@@ -1,6 +1,11 @@
 GET http://localhost:8080/api/v1/auth/google
 
+###
+GET  http://localhost:8080/graphql
+X-Request-Type: GraphQL
 
+
+variables content(optional)
 ### Verificar autenticación
 GET http://localhost:8080/api/v1/auth/check
 X-User-Email: kelvinabache12@gmail.com
@@ -62,5 +67,5 @@ X-User-Email: kelvinabache12@gmail.com
 }
 
 ### Eliminar una tarea
-DELETE http://localhost:8080/api/v1/tasks/869066560614?course_id=869066213014
+DELETE http://localhost:8080/api/v1/tasks/869066560618?course_id=869066213014
 X-User-Email: kelvinabache12@gmail.com

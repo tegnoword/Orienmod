@@ -1,4 +1,3 @@
-// internal/graphql/schema.go
 package graphql
 
 import (

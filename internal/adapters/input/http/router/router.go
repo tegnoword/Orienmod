@@ -15,10 +15,6 @@ import (
 	apperrors "github.com/tegnoword/orienmod/internal/shared/error"
 )
 
-// ============================================
-// INTERFACES Y ESTRUCTURAS
-// ============================================
-
 type TokenStore interface {
 	SaveToken(ctx context.Context, email string, token *oauth2.Token) error
 	GetToken(ctx context.Context, email string) (*oauth2.Token, error)
@@ -49,10 +45,6 @@ func (rt *Router) AddGraphQLRoutes(handler http.Handler) {
 	rt.graphQLHandler = handler
 }
 
-// ============================================
-// SERVIDOR PRINCIPAL - SERVEHTTP
-// ============================================
-
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Configurar CORS
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -68,43 +60,17 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("📨 Petición: %s %s | Email: %s", r.Method, r.URL.Path, email)
 
 	switch {
-	// ============================================
-	// GRAPHQL
-	// ============================================
-	case r.URL.Path == "/graphql" && r.Method == http.MethodGet:
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<!DOCTYPE html>
-<html>
-<head>
-    <title>GraphiQL</title>
-    <style>
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .graphiql-container { height: 100vh; }
-    </style>
-</head>
-<body>
-    <div id="graphiql">Cargando...</div>
-    <script src="https://unpkg.com/graphiql@3.0.0/graphiql.min.js"></script>
-    <script>
-        const fetcher = GraphiQL.createFetcher({ url: '/query' });
-        ReactDOM.render(
-            React.createElement(GraphiQL, { fetcher: fetcher }),
-            document.getElementById('graphiql')
-        );
-    </script>
-</body>
-</html>`))
 
 	case r.URL.Path == "/query" && (r.Method == http.MethodGet || r.Method == http.MethodPost):
 		if rt.graphQLHandler != nil {
+			// ✅ Pasar el email al contexto de GraphQL
+			ctx := context.WithValue(r.Context(), "email", email)
+			r = r.WithContext(ctx)
 			rt.graphQLHandler.ServeHTTP(w, r)
 		} else {
 			http.Error(w, "GraphQL not initialized", http.StatusInternalServerError)
 		}
 
-	// ============================================
-	// HEALTH CHECK
-	// ============================================
 	case r.URL.Path == "/health" && r.Method == http.MethodGet:
 		rt.handleHealthCheck(w, r)
 

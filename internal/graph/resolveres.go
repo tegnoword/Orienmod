@@ -11,7 +11,10 @@ import (
 func (r *Resolver) CoursesResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	courses, err := r.GoogleAdapter.GetAllCourses(p.Context, email)
@@ -19,7 +22,6 @@ func (r *Resolver) CoursesResolver(p graphql.ResolveParams) (interface{}, error)
 		return nil, err
 	}
 
-	// Convertir a []interface{} para GraphQL
 	result := make([]interface{}, len(courses))
 	for i, c := range courses {
 		result[i] = c
@@ -27,11 +29,13 @@ func (r *Resolver) CoursesResolver(p graphql.ResolveParams) (interface{}, error)
 	return result, nil
 }
 
-// CourseResolver - Resuelve la query course
 func (r *Resolver) CourseResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	id, ok := p.Args["id"].(string)
@@ -52,11 +56,13 @@ func (r *Resolver) CourseResolver(p graphql.ResolveParams) (interface{}, error) 
 	return nil, fmt.Errorf("curso no encontrado")
 }
 
-// SearchCoursesResolver - Resuelve la query searchCourses
 func (r *Resolver) SearchCoursesResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	query, ok := p.Args["query"].(string)
@@ -83,11 +89,13 @@ func (r *Resolver) SearchCoursesResolver(p graphql.ResolveParams) (interface{}, 
 	return result, nil
 }
 
-// StudentsResolver - Resuelve la query students
 func (r *Resolver) StudentsResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	courseID, ok := p.Args["courseId"].(string)
@@ -107,11 +115,13 @@ func (r *Resolver) StudentsResolver(p graphql.ResolveParams) (interface{}, error
 	return result, nil
 }
 
-// SearchStudentsResolver - Resuelve la query searchStudents
 func (r *Resolver) SearchStudentsResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	courseID, ok := p.Args["courseId"].(string)
@@ -143,11 +153,13 @@ func (r *Resolver) SearchStudentsResolver(p graphql.ResolveParams) (interface{},
 	return result, nil
 }
 
-// TasksResolver - Resuelve la query tasks
 func (r *Resolver) TasksResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	courseID, ok := p.Args["courseId"].(string)
@@ -167,11 +179,13 @@ func (r *Resolver) TasksResolver(p graphql.ResolveParams) (interface{}, error) {
 	return result, nil
 }
 
-// TaskResolver - Resuelve la query task
 func (r *Resolver) TaskResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	taskID, ok := p.Args["id"].(string)
@@ -191,11 +205,13 @@ func (r *Resolver) TaskResolver(p graphql.ResolveParams) (interface{}, error) {
 	return task, nil
 }
 
-// TaskSubmissionsResolver - Resuelve la query taskSubmissions
 func (r *Resolver) TaskSubmissionsResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	taskID, ok := p.Args["taskId"].(string)
@@ -220,7 +236,6 @@ func (r *Resolver) TaskSubmissionsResolver(p graphql.ResolveParams) (interface{}
 	return result, nil
 }
 
-// CheckAuthResolver - Resuelve la query checkAuth
 func (r *Resolver) CheckAuthResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Args["email"].(string)
 	if !ok || email == "" {
@@ -251,15 +266,13 @@ func (r *Resolver) CheckAuthResolver(p graphql.ResolveParams) (interface{}, erro
 	}, nil
 }
 
-// ============================================
-// MUTATIONS
-// ============================================
-
-// CreateCourseResolver - Resuelve la mutation createCourse
 func (r *Resolver) CreateCourseResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	input, ok := p.Args["input"].(map[string]interface{})
@@ -293,7 +306,10 @@ func (r *Resolver) CreateCourseResolver(p graphql.ResolveParams) (interface{}, e
 func (r *Resolver) UpdateCourseResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	input, ok := p.Args["input"].(map[string]interface{})
@@ -332,7 +348,10 @@ func (r *Resolver) UpdateCourseResolver(p graphql.ResolveParams) (interface{}, e
 func (r *Resolver) DeleteCourseResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return false, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return false, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	id, ok := p.Args["id"].(string)
@@ -351,7 +370,10 @@ func (r *Resolver) DeleteCourseResolver(p graphql.ResolveParams) (interface{}, e
 func (r *Resolver) SyncCourseResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return 0, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return 0, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	id, ok := p.Args["id"].(string)
@@ -370,7 +392,10 @@ func (r *Resolver) SyncCourseResolver(p graphql.ResolveParams) (interface{}, err
 func (r *Resolver) AddStudentResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	input, ok := p.Args["input"].(map[string]interface{})
@@ -405,7 +430,10 @@ func (r *Resolver) AddStudentResolver(p graphql.ResolveParams) (interface{}, err
 func (r *Resolver) DeleteStudentResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return false, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return false, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	courseID, ok := p.Args["courseId"].(string)
@@ -429,7 +457,10 @@ func (r *Resolver) DeleteStudentResolver(p graphql.ResolveParams) (interface{}, 
 func (r *Resolver) CreateTaskResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	input, ok := p.Args["input"].(map[string]interface{})
@@ -475,7 +506,10 @@ func (r *Resolver) CreateTaskResolver(p graphql.ResolveParams) (interface{}, err
 func (r *Resolver) UpdateTaskResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return nil, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return nil, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	input, ok := p.Args["input"].(map[string]interface{})
@@ -523,7 +557,10 @@ func (r *Resolver) UpdateTaskResolver(p graphql.ResolveParams) (interface{}, err
 func (r *Resolver) DeleteTaskResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return false, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return false, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	id, ok := p.Args["id"].(string)
@@ -547,7 +584,10 @@ func (r *Resolver) DeleteTaskResolver(p graphql.ResolveParams) (interface{}, err
 func (r *Resolver) GradeTaskResolver(p graphql.ResolveParams) (interface{}, error) {
 	email, ok := p.Context.Value("email").(string)
 	if !ok || email == "" {
-		return false, fmt.Errorf("usuario no autenticado")
+		email, ok = p.Args["email"].(string)
+		if !ok || email == "" {
+			return false, fmt.Errorf("usuario no autenticado - email requerido en header o argumento")
+		}
 	}
 
 	input, ok := p.Args["input"].(map[string]interface{})

@@ -17,10 +17,10 @@ func NewGraphQLHandler(
 	oauthConfig *oauth2.Config,
 ) http.Handler {
 	resolver := NewResolver(googleAdapter, tokenStore, oauthConfig)
-
 	rootQuery := graphql.ObjectConfig{
 		Name: "RootQuery",
 		Fields: graphql.Fields{
+			// ✅ 1. checkAuth - Con email
 			"checkAuth": &graphql.Field{
 				Type: AuthCheckResponseType,
 				Args: graphql.FieldConfigArgument{
@@ -30,12 +30,19 @@ func NewGraphQLHandler(
 					return resolver.CheckAuthResolver(p)
 				},
 			},
+
+			// ✅ 2. courses - AHORA CON EMAIL
 			"courses": &graphql.Field{
 				Type: graphql.NewList(CourseType),
+				Args: graphql.FieldConfigArgument{
+					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return resolver.CoursesResolver(p)
 				},
 			},
+
+			// ✅ 3. course - Con id y email
 			"course": &graphql.Field{
 				Type: CourseType,
 				Args: graphql.FieldConfigArgument{
@@ -46,6 +53,8 @@ func NewGraphQLHandler(
 					return resolver.CourseResolver(p)
 				},
 			},
+
+			// ✅ 4. searchCourses - Con query y email
 			"searchCourses": &graphql.Field{
 				Type: graphql.NewList(CourseType),
 				Args: graphql.FieldConfigArgument{
@@ -56,6 +65,8 @@ func NewGraphQLHandler(
 					return resolver.SearchCoursesResolver(p)
 				},
 			},
+
+			// ✅ 5. students - Con courseId y email
 			"students": &graphql.Field{
 				Type: graphql.NewList(StudentType),
 				Args: graphql.FieldConfigArgument{
@@ -66,6 +77,8 @@ func NewGraphQLHandler(
 					return resolver.StudentsResolver(p)
 				},
 			},
+
+			// ✅ 6. searchStudents - Con courseId, query y email
 			"searchStudents": &graphql.Field{
 				Type: graphql.NewList(StudentType),
 				Args: graphql.FieldConfigArgument{
@@ -77,6 +90,8 @@ func NewGraphQLHandler(
 					return resolver.SearchStudentsResolver(p)
 				},
 			},
+
+			// ✅ 7. tasks - Con courseId y email
 			"tasks": &graphql.Field{
 				Type: graphql.NewList(TaskType),
 				Args: graphql.FieldConfigArgument{
@@ -87,6 +102,8 @@ func NewGraphQLHandler(
 					return resolver.TasksResolver(p)
 				},
 			},
+
+			// ✅ 8. task - Con id, courseId y email
 			"task": &graphql.Field{
 				Type: TaskType,
 				Args: graphql.FieldConfigArgument{
@@ -98,6 +115,8 @@ func NewGraphQLHandler(
 					return resolver.TaskResolver(p)
 				},
 			},
+
+			// ✅ 9. taskSubmissions - Con taskId, courseId y email
 			"taskSubmissions": &graphql.Field{
 				Type: graphql.NewList(TaskSubmissionType),
 				Args: graphql.FieldConfigArgument{
@@ -113,7 +132,7 @@ func NewGraphQLHandler(
 	}
 
 	// ============================================
-	// CONFIGURAR MUTATIONS
+	// MUTATIONS
 	// ============================================
 
 	rootMutation := graphql.ObjectConfig{
@@ -125,9 +144,7 @@ func NewGraphQLHandler(
 					"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(CreateCourseInputType)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.CreateCourseResolver(p)
-				},
+				Resolve: resolver.CreateCourseResolver,
 			},
 			"updateCourse": &graphql.Field{
 				Type: CourseType,
@@ -135,9 +152,7 @@ func NewGraphQLHandler(
 					"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(UpdateCourseInputType)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.UpdateCourseResolver(p)
-				},
+				Resolve: resolver.UpdateCourseResolver,
 			},
 			"deleteCourse": &graphql.Field{
 				Type: graphql.Boolean,
@@ -145,9 +160,7 @@ func NewGraphQLHandler(
 					"id":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.DeleteCourseResolver(p)
-				},
+				Resolve: resolver.DeleteCourseResolver,
 			},
 			"syncCourse": &graphql.Field{
 				Type: graphql.Int,
@@ -155,9 +168,7 @@ func NewGraphQLHandler(
 					"id":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.SyncCourseResolver(p)
-				},
+				Resolve: resolver.SyncCourseResolver,
 			},
 			"addStudent": &graphql.Field{
 				Type: StudentType,
@@ -165,9 +176,7 @@ func NewGraphQLHandler(
 					"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(AddStudentInputType)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.AddStudentResolver(p)
-				},
+				Resolve: resolver.AddStudentResolver,
 			},
 			"deleteStudent": &graphql.Field{
 				Type: graphql.Boolean,
@@ -176,9 +185,7 @@ func NewGraphQLHandler(
 					"studentId": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 					"email":     &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.DeleteStudentResolver(p)
-				},
+				Resolve: resolver.DeleteStudentResolver,
 			},
 			"createTask": &graphql.Field{
 				Type: TaskType,
@@ -186,9 +193,7 @@ func NewGraphQLHandler(
 					"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(CreateTaskInputType)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.CreateTaskResolver(p)
-				},
+				Resolve: resolver.CreateTaskResolver,
 			},
 			"updateTask": &graphql.Field{
 				Type: TaskType,
@@ -196,9 +201,7 @@ func NewGraphQLHandler(
 					"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(UpdateTaskInputType)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.UpdateTaskResolver(p)
-				},
+				Resolve: resolver.UpdateTaskResolver,
 			},
 			"deleteTask": &graphql.Field{
 				Type: graphql.Boolean,
@@ -207,9 +210,7 @@ func NewGraphQLHandler(
 					"courseId": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 					"email":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.DeleteTaskResolver(p)
-				},
+				Resolve: resolver.DeleteTaskResolver,
 			},
 			"gradeTask": &graphql.Field{
 				Type: graphql.Boolean,
@@ -217,9 +218,7 @@ func NewGraphQLHandler(
 					"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(GradeTaskInputType)},
 					"email": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return resolver.GradeTaskResolver(p)
-				},
+				Resolve: resolver.GradeTaskResolver,
 			},
 		},
 	}
@@ -234,8 +233,9 @@ func NewGraphQLHandler(
 	}
 
 	return handler.New(&handler.Config{
-		Schema:   &schema,
-		Pretty:   true,
-		GraphiQL: true,
+		Schema:     &schema,
+		Pretty:     true,
+		GraphiQL:   true,
+		Playground: true,
 	})
 }

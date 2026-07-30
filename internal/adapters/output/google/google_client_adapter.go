@@ -19,7 +19,7 @@ type GoogleClientAdapter struct {
 	oauthConfig   *oauth2.Config
 	tokenStore    ports.TokenRepository
 	spreadsheetID string
-	limiter       *RateLimiter // ✅ NUEVO: Rate Limiting
+	limiter       *RateLimiter
 }
 
 func NewGoogleClientAdapter(config *oauth2.Config, store ports.TokenRepository, spreadsheetID string) *GoogleClientAdapter {
@@ -27,11 +27,10 @@ func NewGoogleClientAdapter(config *oauth2.Config, store ports.TokenRepository, 
 		oauthConfig:   config,
 		tokenStore:    store,
 		spreadsheetID: spreadsheetID,
-		limiter:       NewRateLimiter(), // ✅ INICIALIZAR RATE LIMITER
+		limiter:       NewRateLimiter(),
 	}
 }
 
-// ✅ MÉTODO PARA CONFIGURAR RATE LIMITER DESDE FUERA (OPCIONAL)
 func (a *GoogleClientAdapter) SetRateLimiter(limiter *RateLimiter) {
 	a.limiter = limiter
 }
@@ -71,7 +70,6 @@ func (a *GoogleClientAdapter) getSheetsService(ctx context.Context, clientEmail 
 // =========================================================================
 
 func (a *GoogleClientAdapter) SaveEvent(ctx context.Context, clientEmail string, event domain.ClassroomEvent) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -103,7 +101,6 @@ func (a *GoogleClientAdapter) SaveEvent(ctx context.Context, clientEmail string,
 }
 
 func (a *GoogleClientAdapter) SaveTasks(ctx context.Context, clientEmail string, studentID string, tasks []domain.Task) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -137,7 +134,6 @@ func (a *GoogleClientAdapter) SaveTasks(ctx context.Context, clientEmail string,
 }
 
 func (a *GoogleClientAdapter) SaveGrade(ctx context.Context, clientEmail string, grade domain.Grade) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -169,7 +165,6 @@ func (a *GoogleClientAdapter) SaveGrade(ctx context.Context, clientEmail string,
 // =========================================================================
 
 func (a *GoogleClientAdapter) SaveCourse(ctx context.Context, clientEmail string, course domain.Course) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -195,7 +190,6 @@ func (a *GoogleClientAdapter) SaveCourse(ctx context.Context, clientEmail string
 }
 
 func (a *GoogleClientAdapter) GetAllCourses(ctx context.Context, clientEmail string) ([]domain.Course, error) {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit: %w", err)
 	}
@@ -231,7 +225,6 @@ func (a *GoogleClientAdapter) GetAllCourses(ctx context.Context, clientEmail str
 }
 
 func (a *GoogleClientAdapter) UpdateCourse(ctx context.Context, email string, course domain.Course) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -256,8 +249,8 @@ func (a *GoogleClientAdapter) UpdateCourse(ctx context.Context, email string, co
 	return nil
 }
 
+// ✅ CORREGIDO: DeleteCourse obtiene el curso primero y luego lo archiva
 func (a *GoogleClientAdapter) DeleteCourse(ctx context.Context, email string, courseID string) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -267,15 +260,26 @@ func (a *GoogleClientAdapter) DeleteCourse(ctx context.Context, email string, co
 		return err
 	}
 
-	course := &classroom.Course{
-		CourseState: "DELETED",
-	}
-	_, err = srv.Courses.Update(courseID, course).Do()
+	// ✅ Primero obtener el curso completo
+	course, err := srv.Courses.Get(courseID).Do()
 	if err != nil {
-		return fmt.Errorf("error al eliminar curso: %w", err)
+		return fmt.Errorf("error al obtener el curso: %w", err)
 	}
 
-	log.Printf("🗑️ Curso eliminado: %s", courseID)
+	// ✅ Si ya está archivado, no hacer nada
+	if course.CourseState == "ARCHIVED" {
+		log.Printf("ℹ️ Curso %s ya está archivado", courseID)
+		return nil
+	}
+
+	// ✅ Cambiar el estado a ARCHIVED (manteniendo los demás campos)
+	course.CourseState = "ARCHIVED"
+	_, err = srv.Courses.Update(courseID, course).Do()
+	if err != nil {
+		return fmt.Errorf("error al archivar curso: %w", err)
+	}
+
+	log.Printf("📦 Curso archivado: %s", courseID)
 	return nil
 }
 
@@ -284,7 +288,6 @@ func (a *GoogleClientAdapter) DeleteCourse(ctx context.Context, email string, co
 // =========================================================================
 
 func (a *GoogleClientAdapter) SaveStudent(ctx context.Context, clientEmail string, courseID string, student domain.Student) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -307,7 +310,6 @@ func (a *GoogleClientAdapter) SaveStudent(ctx context.Context, clientEmail strin
 }
 
 func (a *GoogleClientAdapter) GetStudentsByCourse(ctx context.Context, clientEmail string, courseID string) ([]domain.Student, error) {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit: %w", err)
 	}
@@ -354,7 +356,6 @@ func (a *GoogleClientAdapter) GetStudentsByCourse(ctx context.Context, clientEma
 }
 
 func (a *GoogleClientAdapter) DeleteStudent(ctx context.Context, email string, courseID string, studentID string) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -378,7 +379,6 @@ func (a *GoogleClientAdapter) DeleteStudent(ctx context.Context, email string, c
 // =========================================================================
 
 func (a *GoogleClientAdapter) CreateTask(ctx context.Context, email string, task domain.Task) (string, error) {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return "", fmt.Errorf("rate limit: %w", err)
 	}
@@ -441,7 +441,6 @@ func (a *GoogleClientAdapter) CreateTask(ctx context.Context, email string, task
 }
 
 func (a *GoogleClientAdapter) GetTasksByCourse(ctx context.Context, email string, courseID string) ([]domain.Task, error) {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit: %w", err)
 	}
@@ -489,7 +488,6 @@ func (a *GoogleClientAdapter) GetTasksByCourse(ctx context.Context, email string
 }
 
 func (a *GoogleClientAdapter) GetTaskByID(ctx context.Context, email string, courseID string, taskID string) (*domain.Task, error) {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit: %w", err)
 	}
@@ -528,7 +526,6 @@ func (a *GoogleClientAdapter) GetTaskByID(ctx context.Context, email string, cou
 }
 
 func (a *GoogleClientAdapter) UpdateTask(ctx context.Context, email string, task domain.Task) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -582,7 +579,6 @@ func (a *GoogleClientAdapter) UpdateTask(ctx context.Context, email string, task
 }
 
 func (a *GoogleClientAdapter) DeleteTask(ctx context.Context, email string, courseID string, taskID string) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -606,7 +602,6 @@ func (a *GoogleClientAdapter) DeleteTask(ctx context.Context, email string, cour
 // =========================================================================
 
 func (a *GoogleClientAdapter) GetTaskSubmissions(ctx context.Context, email string, courseID string, taskID string) ([]domain.TaskSubmission, error) {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return nil, fmt.Errorf("rate limit: %w", err)
 	}
@@ -645,8 +640,8 @@ func (a *GoogleClientAdapter) GetTaskSubmissions(ctx context.Context, email stri
 	return submissions, nil
 }
 
+// ✅ CORREGIDO: GradeTask usa *float64
 func (a *GoogleClientAdapter) GradeTask(ctx context.Context, email string, courseID string, taskID string, submissionID string, grade float64) error {
-	// ✅ RATE LIMITING
 	if err := a.limiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limit: %w", err)
 	}
@@ -656,6 +651,7 @@ func (a *GoogleClientAdapter) GradeTask(ctx context.Context, email string, cours
 		return err
 	}
 
+	// ✅ AssignedGrade debe ser *float64
 	submission := &classroom.StudentSubmission{
 		AssignedGrade: grade,
 	}

@@ -1,0 +1,12 @@
+[2K[1G[36m?[39m [1mWhat is your app named?[22m [90m›[39m [90mmy-app[39m78[2K[1G[2K[1G[32m✔[39m [1mWhat is your app named?[22m [90m…[39m my-app78
+[?25h[?25l[36m?[39m [1mSelect an Expo SDK version:[22m [90m›[39m [90m- Use arrow-keys. Return to submit.[39m
+[36m❯[39m   [36m[4mLatest (SDK 57)[39m[24m[90m - Recommended for most projects[39m
+    For learning with Expo Go (SDK 54)[90m[39m
+    Other SDK version…[90m[39m
+[2K[1G[32m✔[39m [1mSelect an Expo SDK version:[22m [90m›[39m Latest (SDK 57)
+[?25hCreating my-app using the default template.
+
+Tip:
+  • npx create-expo-app --template  to pick from other templates
+  • npx create-expo-app --example   to explore https://github.com/expo/examples
+

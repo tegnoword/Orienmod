@@ -3,24 +3,22 @@
 
 > Middleware educativo de alto rendimiento desarrollado en Go (Golang) bajo **Arquitectura Hexagonal (Ports & Adapters)**. Actúa como capa de orquestación desacoplada entre clientes móviles/web y las APIs oficiales de Google (Classroom, Sheets, Drive).
 
+
+<p align="center">
+  <img src="doc/screen.png" alt="Orienmod Banner" width="800"/>
+</p>
+
 ---
 
 ## 📌 Tabla de Contenidos
 - [Visión General](#-visión-general)
-- [Hoja de Ruta del Proyecto](#-hoja-de-ruta-del-proyecto)
-- [Arquitectura del Sistema](#-arquitectura-del-sistema)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Componentes Clave y Tecnologías](#-componentes-clave-y-tecnologías)
-- [Endpoints Principales (REST & GraphQL)](#-endpoints-principales-rest--graphql)
-  - [Endpoints REST](#endpoints-rest)
-  - [Esquema GraphQL](#esquema-graphql)
-- [Configuración de Variables de Entorno](#-configuración-de-variables-de-entorno)
-- [Requisitos Previos e Instalación](#-requisitos-previos-e-instalación)
-- [Ejecución y Despliegue](#-ejecución-y-despliegue)
-- [Estrategia de Pruebas](#-estrategia-de-pruebas)
-- [Consideraciones de Seguridad](#-consideraciones-de-seguridad)
-- [Licencia](#-licencia)
-
+- [Hoja de Ruta del Proyecto](#️-hoja-de-ruta-del-proyecto)
+- [Arquitectura del Sistema](#️-arquitectura-del-sistema)
+- [Estructura del Proyecto](#️-estructura-del-proyecto)
+- [Componentes Clave y Tecnologías](#️-componentes-clave-y-tecnologías)
+- [Endpoints Principales (REST & GraphQL)](#-endpoints-rest)
+- [Estructura De Los Archivos](#estructura-de-los-archivos)
+- [Diseños UI/UX](#-diseños-uiux)
 ---
 
 ## 🌐 Visión General
@@ -34,6 +32,8 @@ Orienmod centraliza la lógica de negocio de gestión educativa digital, abstray
 * **Arquitectura Hexagonal:** Desacoplamiento total entre dominio de negocio, fuentes de datos y protocolos de transporte.
 
 ---
+
+
 
 ## 🗺️ Hoja de Ruta del Proyecto
 
@@ -232,4 +232,44 @@ type Mutation {
     deleteTask(id: String!, courseId: String!, email: String!): Boolean!
     gradeTask(input: GradeTaskInput!, email: String!): Boolean!
 }
+```
+
+
+## 🎨 Diseños UI/UX
+
+Los diseños de la aplicación están disponibles en Google stitch:
+👉 [Ver diseños en google stitch](https://stitch.withgoogle.com/projects/18249340745565465731)
+
+## Estructura De Los Archivos
+
+```ESTRUCTURA DE PAQUETES
+com.orienmod.app
+├── OrienmodApp          # Application
+├── MainActivity         # Actividad principal
+├── screens              # Pantallas UI
+│   ├── auth             # Autenticación
+│   ├── home             # Dashboard
+│   ├── courses          # Cursos
+│   ├── tasks            # Tareas
+│   ├── students         # Estudiantes
+│   └── profile          # Perfil
+├── components           # Componentes Compose
+│   ├── buttons
+│   ├── cards
+│   ├── layout
+│   ├── feedback
+│   ├── inputs
+│   └── dialog
+├── theme                # Tema
+├── navigation           # Navegación
+├── data                 # Capa de datos
+│   ├── api              # APIs (Retrofit, GraphQL)
+│   ├── local            # Almacenamiento local
+│   ├── repository       # Repositorios (implementación)
+│   └── model            # Modelos de datos
+├── domain               # Capa de dominio
+│   ├── repository       # Interfaces de repositorios
+│   └── usecase          # Casos de uso
+├── di                   # Inyección de dependencias
+└── utils                # Utilidades
 ```

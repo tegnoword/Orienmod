@@ -1,0 +1,9 @@
+query Courses($email: String!) {
+    courses(email: $email) {
+        id
+        name
+        section
+        description
+        ownerId
+    }
+}

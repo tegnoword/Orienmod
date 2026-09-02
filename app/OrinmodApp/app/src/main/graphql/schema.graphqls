@@ -1,0 +1,154 @@
+type Course {
+  id: String!
+  name: String!
+  section: String!
+  description: String!
+  ownerId: String
+  students: [Student!]
+  tasks: [Task!]
+}
+
+type Student {
+  id: String!
+  name: String!
+  email: String!
+  courseId: String!
+}
+
+type Task {
+  id: String!
+  courseId: String!
+  title: String!
+  description: String!
+  dueDate: String!
+  maxPoints: Float!
+  state: String!
+  workType: String!
+  submissions: [TaskSubmission!]
+}
+
+type TaskSubmission {
+  id: String!
+  taskId: String!
+  studentId: String!
+  state: String!
+  grade: Float
+}
+
+type AuthResponse {
+  status: String!
+  message: String!
+  email: String!
+  token: TokenInfo!
+}
+
+type TokenInfo {
+  accessToken: String!
+  tokenType: String!
+  expiry: String!
+}
+
+type AuthCheckResponse {
+  authenticated: Boolean!
+  email: String!
+  tokenExpiry: String
+  valid: Boolean!
+  error: String
+}
+
+input CreateCourseInput {
+  name: String!
+  section: String!
+  description: String!
+}
+
+input UpdateCourseInput {
+  id: String!
+  name: String!
+  section: String!
+  description: String!
+}
+
+input CreateTaskInput {
+  courseId: String!
+  title: String!
+  description: String!
+  dueDate: String!
+  maxPoints: Float!
+  workType: String!
+}
+
+input UpdateTaskInput {
+  id: String!
+  courseId: String!
+  title: String!
+  description: String!
+  dueDate: String!
+  maxPoints: Float!
+  state: String!
+  workType: String!
+}
+
+input AddStudentInput {
+  courseId: String!
+  studentId: String!
+  email: String!
+  name: String!
+}
+
+input GradeTaskInput {
+  courseId: String!
+  taskId: String!
+  submissionId: String!
+  grade: Float!
+}
+
+input AuthLoginInput {
+  redirectUri: String!
+}
+
+input AuthCallbackInput {
+  code: String!
+  redirectUri: String!
+}
+
+input AuthLogoutInput {
+  email: String!
+}
+
+input AuthRefreshInput {
+  email: String!
+}
+
+type Query {
+  checkAuth(email: String!): AuthCheckResponse!
+  courses(email: String!): [Course!]!
+  course(id: String!, email: String!): Course!
+  searchCourses(query: String!, email: String!): [Course!]!
+  students(courseId: String!, email: String!): [Student!]!
+  searchStudents(courseId: String!, query: String!, email: String!): [Student!]!
+  tasks(courseId: String!, email: String!): [Task!]!
+  task(id: String!, courseId: String!, email: String!): Task!
+  taskSubmissions(taskId: String!, courseId: String!, email: String!): [TaskSubmission!]!
+}
+
+
+type Mutation {
+  authLogin(input: AuthLoginInput!): String!
+  authCallback(input: AuthCallbackInput!, email: String!): AuthResponse!
+  authLogout(input: AuthLogoutInput!, email: String!): AuthResponse!
+  authRefresh(input: AuthRefreshInput!, email: String!): AuthResponse!
+
+  createCourse(input: CreateCourseInput!, email: String!): Course!
+  updateCourse(input: UpdateCourseInput!, email: String!): Course!
+  deleteCourse(id: String!, email: String!): Boolean!
+  syncCourse(id: String!, email: String!): Int!
+
+  addStudent(input: AddStudentInput!, email: String!): Student!
+  deleteStudent(courseId: String!, studentId: String!, email: String!): Boolean!
+
+  createTask(input: CreateTaskInput!, email: String!): Task!
+  updateTask(input: UpdateTaskInput!, email: String!): Task!
+  deleteTask(id: String!, courseId: String!, email: String!): Boolean!
+  gradeTask(input: GradeTaskInput!, email: String!): Boolean!
+}
